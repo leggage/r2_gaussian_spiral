@@ -1,0 +1,61 @@
+# Mode
+mode: cone # keep cone geometry; spiral offsets controlled separately
+filter: null
+
+# System configuration
+DSD: 47.33729858398438  # Distance Source Detector
+DSO: 26.9260009765625 # Distance Source Origin
+
+# Detector parameters
+nDetector: # Number of pixels (Note: [v, u] not [u,v])
+- 64 
+- 888 
+sDetector: # Size of image (not pixel)
+- 3.2764801025390624
+- 45.46116142272949
+
+# Image parameters
+nVoxel: # Number of voxels [x, y, z]
+- 256
+- 256
+- 256 
+sVoxel: # size of volume (not voxel)
+- 16.0
+- 16.0
+- 24.0
+
+# Offsets
+offOrigin: # Offset of image from origin
+- 0 # x direction
+- 0 # y direction
+- 0 # z direction
+offDetector: # Offset of Detector (only in two direction)
+- 0 # u direction
+- 0 # v direction
+
+# Auxiliary
+accuracy: 0.5 # Accuracy of FWD proj
+
+# Angles - Now supports multiple rotations (e.g., 720 for 2 full rotations)
+totalAngle: 2880.0 # Total angle (degree) - can exceed 360 for multiple cycles
+startAngle: 0.0 # Start angle (degree)
+
+# Noise (follow TIGRE https://github.com/CERN/TIGRE/blob/master/Python/demos/d03_generateData.py)
+noise: true
+possion_noise: 100000  # lambda for possion
+gaussian_noise: # mean and std for gaussian
+- 0 # mean
+- 10 # std
+
+# Spiral configuration
+spiral:
+  enabled: true
+  z_start: -12         # initial offset along +z (same unit as offOrigin)
+  z_end: 12            # final offset along +z (same unit as offOrigin)
+  # z_delta_per_view is automatically computed as: (z_end - z_start) / (num_views - 1)
+  # This ensures all projections are linearly distributed between z_start and z_end,
+  # keeping them within the volume bounds.
+  # 
+  # For backward compatibility, you can also specify z_delta_per_view directly:
+  # z_delta_per_view: 0.1  # constant z step per projection (ignores z_end if present)
+
