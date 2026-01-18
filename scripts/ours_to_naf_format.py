@@ -13,8 +13,8 @@ from tqdm import tqdm
 # data_path = "data/synthetic_dataset/cone_ntrain_75_angle_360"
 # output_path = "data/synthetic_dataset_naf_format/cone_ntrain_75_angle_360"
 
-data_path = "data/real_dataset/cone_ntrain_75_angle_360"
-output_path = "data/real_dataset_naf_format/cone_ntrain_75_angle_360"
+data_path = "data/syn_dataset/syn_spiral_ntrain1000_8circle_pjzspan24"
+output_path = "data/syn_dataset_naf_format/cone_ntrain_1000_angle_8circle_pjzspan24"
 
 case_path_list = sorted(glob.glob(osp.join(data_path, "*/")))
 os.makedirs(output_path, exist_ok=True)
@@ -30,12 +30,14 @@ for case_path in tqdm(case_path_list):
         axis=0,
     )
     angles_train = np.stack([m["angle"] for m in meta_data["proj_train"]], axis=0)
+    zshift_train = np.stack([m["z_shift"] for m in meta_data["proj_train"]], axis=0)
     n_train = angles_train.shape[0]
     projs_test = np.stack(
         [np.load(osp.join(case_path, m["file_path"])) for m in meta_data["proj_test"]],
         axis=0,
     )
     angles_test = np.stack([m["angle"] for m in meta_data["proj_test"]], axis=0)
+    zshift_test = np.stack([m["z_shift"] for m in meta_data["proj_test"]], axis=0)
     n_test = angles_test.shape[0]
 
     img = np.load(osp.join(case_path, meta_data["vol"]))
@@ -52,10 +54,12 @@ for case_path in tqdm(case_path_list):
             "train": {
                 "projections": projs_train,
                 "angles": angles_train,
+                "z_shift":zshift_train,
             },
             "val": {
                 "projections": projs_test,
                 "angles": angles_test,
+                "z_shift":zshift_test
             },
             "image": img,
         }

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import tigre
 import yaml
 import copy
+import json
 
 sys.path.append("./")
 from r2_gaussian.dataset import Scene
@@ -23,7 +24,37 @@ def main(dataset: ModelParams):
     # Set up dataset
     scene = Scene(dataset, shuffle=False)
     scanner_cfg = scene.scanner_cfg
-    geo = get_geometry_tigre(scanner_cfg)
+
+    # Load meta to check optional per-view offOrigin (e.g., spiral trajectories)
+    meta_path = osp.join(dataset.source_path, "meta_data.json")
+    spiral_offorigin_train = None
+    spiral_offorigin_test = None
+    if osp.exists(meta_path):
+        with open(meta_path, "r") as f:
+            meta = json.load(f)
+        spiral_meta = meta.get("spiral")
+        if spiral_meta:
+            def _parse_offorigin(key):
+                arr = spiral_meta.get(key)
+                if arr is None:
+                    return None
+                arr = np.asarray(arr, dtype=np.float32)
+                # # Normalize shape to (3, N)
+                # if arr.ndim == 2 and arr.shape[0] != 3 and arr.shape[1] == 3:
+                #     arr = arr.T
+                return arr
+
+            spiral_offorigin_train = _parse_offorigin("train_offOrigin")
+            spiral_offorigin_test = _parse_offorigin("test_offOrigin")
+
+    base_geo = get_geometry_tigre(scanner_cfg)
+    geo_train = copy.deepcopy(base_geo)
+    geo_test = copy.deepcopy(base_geo)
+    if spiral_offorigin_train is not None:
+        geo_train.offOrigin = spiral_offorigin_train/12 
+
+    if spiral_offorigin_test is not None:
+        geo_test.offOrigin = spiral_offorigin_test/12
 
     projs_train = np.concatenate(
         [t2a(c.original_image) for c in scene.getTrainCameras()],
@@ -47,11 +78,11 @@ def main(dataset: ModelParams):
     methods = ["fdk", "sart", "asd_pocs"]
     for method in methods:
         out_dict[method], ct_pred, _ = run_ct_recon_algs(
-            projs_train, train_angles, copy.deepcopy(geo), vol_gt, save_path, method
+            projs_train, train_angles, copy.deepcopy(geo_train), vol_gt, save_path, method
         )
         # Render projections in test
         projs_test_pred = tigre.Ax(
-            np.transpose(ct_pred, (2, 1, 0)).copy(), copy.deepcopy(geo), test_angles
+            np.transpose(ct_pred, (2, 1, 0)).copy(), copy.deepcopy(geo_test), test_angles
         )[:, ::-1, :]
         proj_save_path = osp.join(save_path, method, "projs")
         os.makedirs(proj_save_path, exist_ok=True)

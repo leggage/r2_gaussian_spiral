@@ -42,9 +42,9 @@ def main(dataset: ModelParams, args):
     vol_bbox.color = np.array([1, 0, 0])
 
     unit_bbox = o3d.geometry.OrientedBoundingBox(
-        center=[0, 0, 0], R=np.eye(3), extent=[2, 2, 2]
+        center=[0, 0, 0], R=np.eye(3), extent=[1, 1, 1]
     )
-    unit_bbox.color = np.array([0, 0, 1])
+    unit_bbox.color = np.array([0, 1, 1])
 
     cams = []
     cmap = matplotlib.colormaps["viridis"]

@@ -40,6 +40,7 @@ def training(
     saving_iterations,
     checkpoint_iterations,
     checkpoint,
+    cord: int
 ):
     first_iter = 0
 
@@ -216,6 +217,7 @@ def training(
                 scene,
                 lambda x, y: render(x, y, pipe),
                 queryfunc,
+                cord
             )
 
 
@@ -228,6 +230,7 @@ def training_report(
     scene: Scene,
     renderFunc,
     queryFunc,
+    cord: int
 ):
     # Add training statistics
     if tb_writer:
@@ -313,7 +316,10 @@ def training_report(
                     )
 
         # Evaluate 3D reconstruction performance
+        
         vol_pred = queryFunc(scene.gaussians)["vol"]
+        if cord:
+            vol_pred = torch.flip(vol_pred, dims=[0])
         vol_gt = scene.vol_gt
         psnr_3d, _ = metric_vol(vol_gt, vol_pred, "psnr")
         ssim_3d, ssim_3d_axis = metric_vol(vol_gt, vol_pred, "ssim")
@@ -371,6 +377,7 @@ if __name__ == "__main__":
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
     parser.add_argument("--detect_anomaly", action="store_true", default=False)
+    parser.add_argument("--cord",type=int,help="0 for right handed coord, 1 for left-handed coord",default=0)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 20_000])
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--quiet", action="store_true")
@@ -409,6 +416,7 @@ if __name__ == "__main__":
         args.save_iterations,
         args.checkpoint_iterations,
         args.start_checkpoint,
+        args.cord
     )
 
     # All done

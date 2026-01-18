@@ -109,8 +109,8 @@ if __name__ == "__main__":
     parser.add_argument("--vol", default="data_generator/volume_gt/0_chest.npy", type=str, help="Path to volume.")
     parser.add_argument("--scanner", default="data_generator/scanner/cone_beam.yml", type=str, help="Path to scanner configuration.")
     parser.add_argument("--output", default="data/cone_ntrain_50_angle_360", type=str, help="Path to output.")
-    parser.add_argument("--n_train", default=50, type=int, help="Number of projections for training.")
-    parser.add_argument("--n_test", default=100, type=int, help="Number of projections for evaluation.")
+    parser.add_argument("--n_train", default=200, type=int, help="Number of projections for training.")
+    parser.add_argument("--n_test", default=300, type=int, help="Number of projections for evaluation.")
     # fmt: on
 
     args = parser.parse_args()

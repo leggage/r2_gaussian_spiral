@@ -115,9 +115,13 @@ def readCTameras(meta_data, source_path, eval=False, scene_scale=1.0):
 
             frame_info = meta_data["proj_" + split][i_split]
             frame_angle = frame_info["angle"]
-
+            # During data generation the object was shifted along +z by z_shift.
+            # Rendering with static volumes is equivalent to translating the camera
+            # by the opposite amount, hence the negative sign here.
+            frame_z_shift = (frame_info.get("z_shift", 0.0))*scene_scale
+            syn_dataset = 1
             # CT 'transform_matrix' is a camera-to-world transform
-            c2w = angle2pose(cam_cfg["DSO"], frame_angle)  # c2w
+            c2w = angle2pose(cam_cfg["DSO"], frame_angle, frame_z_shift)  # c2w
             # get the world-to-camera transform and set R, T
             w2c = np.linalg.inv(c2w)
             R = np.transpose(
@@ -126,7 +130,11 @@ def readCTameras(meta_data, source_path, eval=False, scene_scale=1.0):
             T = w2c[:3, 3]
 
             image_path = osp.join(source_path, frame_info["file_path"])
+            # image = np.load(image_path) * scene_scale*6
             image = np.load(image_path) * scene_scale
+            if not syn_dataset:
+                image = image[:,::-1].copy()
+                image = image*6
             # Note, dDetector is [v, u] not [u, v]
             FovX = np.arctan2(cam_cfg["sDetector"][1] / 2, cam_cfg["DSD"]) * 2
             FovY = np.arctan2(cam_cfg["sDetector"][0] / 2, cam_cfg["DSD"]) * 2
@@ -153,11 +161,17 @@ def readCTameras(meta_data, source_path, eval=False, scene_scale=1.0):
     return cam_infos
 
 
-def angle2pose(DSO, angle):
+def angle2pose(DSO, angle, z_shift=0.0):
     """Transfer angle to pose (c2w) based on scanner geometry.
     1. rotate -90 degree around x-axis (fixed axis),
     2. rotate 90 degree around z-axis  (fixed axis),
-    3. rotate angle degree around z axis  (fixed axis)"""
+    3. rotate angle degree around z axis  (fixed axis)
+
+    z_shift is interpreted as translating the camera center along +z (while the
+    volume stays static). When reading metadata produced by our synthetic
+    generator, we pass in the negated object shift so that the relative
+    displacement matches the forward projector.
+    """
 
     phi1 = -np.pi / 2
     R1 = np.array(
@@ -183,7 +197,7 @@ def angle2pose(DSO, angle):
         ]
     )
     rot = np.dot(np.dot(R3, R2), R1)
-    trans = np.array([DSO * np.cos(angle), DSO * np.sin(angle), 0])
+    trans = np.array([DSO * np.cos(angle), DSO * np.sin(angle), z_shift])
     transform = np.eye(4)
     transform[:3, :3] = rot
     transform[:3, 3] = trans
@@ -259,7 +273,12 @@ def readNAFInfo(path, eval):
             sys.stdout.flush()
 
             frame_angle = angles[i_split]
-            c2w = angle2pose(scanner_cfg["DSO"], frame_angle)
+            frame_z_shift = 0.0
+            if isinstance(data_split, dict):
+                z_shifts = data_split.get("z_shifts")
+                if z_shifts is not None:
+                    frame_z_shift = -z_shifts[i_split]
+            c2w = (scanner_cfg["DSO"], frame_angle, frame_z_shift)
             # get the world-to-camera transform and set R, T
             w2c = np.linalg.inv(c2w)
             R = np.transpose(
