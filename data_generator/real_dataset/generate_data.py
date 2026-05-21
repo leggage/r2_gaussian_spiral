@@ -145,22 +145,22 @@ def main(args):
     }
 
     # Reconstruct with FDK as gt
-    ct_gt_save_path = osp.join(output_path, "vol_gt.npy")
-    if not osp.exists(ct_gt_save_path):
-        projs = []
-        skip = 1
-        proj_paths = sorted(glob.glob(osp.join(all_save_path, "*.npy")))
-        for proj_path in proj_paths[::skip]:
-            proj = np.load(proj_path)
-            nDetector = proj.shape
-            projs.append(proj)
-        projs = np.stack(projs, axis=0)
-        print("reconstruct with FDK")
-        geo = get_geometry_tigre(scanner_cfg)
-        ct_gt = algs.fdk(projs[:, ::-1, :], geo, angles[::skip])
-        ct_gt = ct_gt.transpose((2, 1, 0))
-        ct_gt[ct_gt < 0] = 0
-        np.save(ct_gt_save_path, ct_gt)
+    # ct_gt_save_path = osp.join(output_path, "vol_gt.npy")
+    # if not osp.exists(ct_gt_save_path):
+    #     projs = []
+    #     skip = 1
+    #     proj_paths = sorted(glob.glob(osp.join(all_save_path, "*.npy")))
+    #     for proj_path in proj_paths[::skip]:
+    #         proj = np.load(proj_path)
+    #         nDetector = proj.shape
+    #         projs.append(proj)
+    #     projs = np.stack(projs, axis=0)
+    #     print("reconstruct with FDK")
+    #     geo = get_geometry_tigre(scanner_cfg)
+    #     ct_gt = algs.fdk(projs[:, ::-1, :], geo, angles[::skip])
+    #     ct_gt = ct_gt.transpose((2, 1, 0))
+    #     ct_gt[ct_gt < 0] = 0
+    #     np.save(ct_gt_save_path, ct_gt)
 
     # Save
     meta_data = {

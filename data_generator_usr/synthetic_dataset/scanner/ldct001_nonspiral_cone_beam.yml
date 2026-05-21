@@ -1,0 +1,49 @@
+# Mode
+mode: cone
+filter: null
+coord_left: false
+
+# System configuration
+DSD: 47.33729858398438
+DSO: 26.9260009765625
+
+# Detector parameters [v, u]
+nDetector:
+  - 64
+  - 888
+sDetector:
+  - 3.2764801025390624
+  - 45.46116142272949
+
+# Volume parameters [x, y, z]
+nVoxel:
+  - 256
+  - 256
+  - 256
+sVoxel:
+  - 16.0
+  - 16.0
+  - 24.0
+
+# Offsets
+offOrigin:
+  - 0
+  - 0
+  - 0
+offDetector:
+  - 0
+  - 0
+
+# Auxiliary
+accuracy: 0.5
+
+# Angles
+totalAngle: 2880.0
+startAngle: 0.0
+
+# Noise
+noise: true
+possion_noise: 100000
+gaussian_noise:
+  - 0
+  - 10

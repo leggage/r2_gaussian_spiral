@@ -119,7 +119,7 @@ def readCTameras(meta_data, source_path, eval=False, scene_scale=1.0):
             # Rendering with static volumes is equivalent to translating the camera
             # by the opposite amount, hence the negative sign here.
             frame_z_shift = (frame_info.get("z_shift", 0.0))*scene_scale
-            syn_dataset = 1
+            
             # CT 'transform_matrix' is a camera-to-world transform
             c2w = angle2pose(cam_cfg["DSO"], frame_angle, frame_z_shift)  # c2w
             # get the world-to-camera transform and set R, T
@@ -132,9 +132,11 @@ def readCTameras(meta_data, source_path, eval=False, scene_scale=1.0):
             image_path = osp.join(source_path, frame_info["file_path"])
             # image = np.load(image_path) * scene_scale*6
             image = np.load(image_path) * scene_scale
-            if not syn_dataset:
+            if cam_cfg["coord_left"]:
                 image = image[:,::-1].copy()
-                image = image*6
+                # image = image[::-1,:].copy()
+                # image = image*6    ##抵消数据生成时的缩放，/400*50=/8
+                frame_angle = -frame_angle
             # Note, dDetector is [v, u] not [u, v]
             FovX = np.arctan2(cam_cfg["sDetector"][1] / 2, cam_cfg["DSD"]) * 2
             FovY = np.arctan2(cam_cfg["sDetector"][0] / 2, cam_cfg["DSD"]) * 2
@@ -227,6 +229,7 @@ def readNAFInfo(path, eval):
         "totalAngle": data["totalAngle"],
         "startAngle": data["startAngle"],
         "accuracy": data["accuracy"],
+        "coord_left":data.get("coord_left", False),
         "mode": data["mode"],
         "filter": None,
     }

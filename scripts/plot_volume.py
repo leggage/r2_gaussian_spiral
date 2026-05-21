@@ -4,9 +4,9 @@ import numpy as np
 import pyvista as pv
 
 # Path to *.npy volume file
-volume_path = "output/trad_syn_ntrain1000_proj1_projzspan24_volzspan24/asd_pocs/ct_pred.npy"
+volume_path = "data/LDCT-L004/real_dataset/ldct_l004_spiral_nt200/vol_gt.npy"
 # Image save path
-save_path = "pred_volume/asd_syn_ntrain1000_projd1_projzspan24_volzspan24.png"
+save_path = "pred_volume/ldct_l004/ldct_l004_gt.png"
 
 # Pyvista settings. You may need to tune them.
 cpos = [
@@ -20,7 +20,7 @@ colormap = "viridis"
 volume = np.load(volume_path)
 
 # volume = volume[::-1,:,:].copy()
-# volume = volume[:,::-1,:].copy()
+# # volume = volume[:,::-1,:].copy()
 # volume = volume[:,:,::-1].copy()
 half_size = volume.shape[0] // 2
 volume[:half_size, :, :] = 0  # Set half to zero to show the inner structure

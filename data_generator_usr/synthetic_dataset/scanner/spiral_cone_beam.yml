@@ -1,7 +1,7 @@
 # Mode
 mode: cone # keep cone geometry; spiral offsets controlled separately
 filter: null
-
+coord_left: false # Whether the image coordinates are left-handed (i.e., flip u direction)
 # System configuration
 DSD: 47.33729858398438  # Distance Source Detector
 DSO: 26.9260009765625 # Distance Source Origin
@@ -52,10 +52,14 @@ spiral:
   enabled: true
   z_start: -12         # initial offset along +z (same unit as offOrigin)
   z_end: 12            # final offset along +z (same unit as offOrigin)
-  # z_delta_per_view is automatically computed as: (z_end - z_start) / (num_views - 1)
-  # This ensures all projections are linearly distributed between z_start and z_end,
-  # keeping them within the volume bounds.
-  # 
-  # For backward compatibility, you can also specify z_delta_per_view directly:
-  # z_delta_per_view: 0.1  # constant z step per projection (ignores z_end if present)
+
+  
+  # Physical helical mode (optional): set pitch + sample_per_rotation to override
+  # linear z spacing and --n_train count. collimation_width = 2*tan(sDetector_v/(2*DSD))*DSO;
+  # table_feed_per_rotation = pitch * collimation_width; z_gap = table_feed/spr;
+  # angle_gap = 2*pi/spr. First view at (z_start, angle_start); stop when next z > z_end.
+  physical_spiral: true # set false to force legacy mode even if pitch/spr present
+  pitch: 0.9844
+  sample_per_rotation: 984
+  angle_start: 0.0   # deg; defaults to scanner startAngle
 

@@ -205,8 +205,8 @@ def resize(scan, target_size):
 if __name__ == "__main__":
     # fmt: off
     parser = argparse.ArgumentParser()
-    parser.add_argument("--metadata", default="data_generator/raw_metadata.py", type=str, help="Path to metadata.")
-    parser.add_argument("--output", default="data_generator/volume_gt", type=str, help="Path to output folder.")
+    parser.add_argument("--metadata", default="data_generator_usr/synthetic_dataset/raw_metadata.py", type=str, help="Path to metadata.")
+    parser.add_argument("--output", default="data_generator_usr/volume_gt", type=str, help="Path to output folder.")
     parser.add_argument("--target_size", default=256, type=int, help="Target volume size (a cube)")
 
     # fmt: on

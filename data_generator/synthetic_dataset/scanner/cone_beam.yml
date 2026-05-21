@@ -1,6 +1,7 @@
 # Mode
 mode: cone # X-ray source mode parallel/cone
 filter: null
+coord_left: false
 
 # System configuration
 DSD: 7.0  # Distance Source Detector

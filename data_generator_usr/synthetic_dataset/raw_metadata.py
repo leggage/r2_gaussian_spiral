@@ -13,13 +13,43 @@ raw_info = [
     #     "thickness": None,
     #     "xy_invert": False,
     # },
+
+    
     {
-        "raw_path": "data_generator/synthetic_dataset/volume_raw/fan_beam",
-        "output_name": "fan_beam_volume",
+        "raw_path": "data/abdomen",
+        "output_name": "abdomen",
         "file_type": "dcm",
         "thickness": None,
         "xy_invert": False,
     },
+    {
+        "raw_path": "data/adrenal",
+        "output_name": "adrenal",
+        "file_type": "dcm",
+        "thickness": None,
+        "xy_invert": False,
+    },
+    {
+        "raw_path": "data/aorta",
+        "output_name": "aorta",
+        "file_type": "dcm",
+        "thickness": None,
+        "xy_invert": False,
+    },
+    # {
+    #     "raw_path": "data/LDCT-C179/3DSLICE",
+    #     "output_name": "ldct_c179",
+    #     "file_type": "dcm",
+    #     "thickness": None,
+    #     "xy_invert": False,
+    # },
+    # {
+    #     "raw_path": "data_generator/synthetic_dataset/volume_raw/fan_beam",
+    #     "output_name": "fan_beam_volume",
+    #     "file_type": "dcm",
+    #     "thickness": None,
+    #     "xy_invert": False,
+    # },
     # {
     #     "raw_path": "data_generator/synthetic_dataset/volume_raw/foot_256x256x256_uint8.raw",
     #     "output_name": "0_foot",

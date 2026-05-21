@@ -16,6 +16,7 @@ sys.path.append("./")
 from r2_gaussian.dataset import Scene
 from r2_gaussian.utils.general_utils import t2a, safe_state
 from r2_gaussian.utils.ct_utils import get_geometry_tigre, run_ct_recon_algs
+from r2_gaussian.utils.image_utils import metric_proj
 from r2_gaussian.arguments import ModelParams
 
 
@@ -24,6 +25,7 @@ def main(dataset: ModelParams):
     # Set up dataset
     scene = Scene(dataset, shuffle=False)
     scanner_cfg = scene.scanner_cfg
+    scene_scale = scene.scene_scale
 
     # Load meta to check optional per-view offOrigin (e.g., spiral trajectories)
     meta_path = osp.join(dataset.source_path, "meta_data.json")
@@ -39,7 +41,7 @@ def main(dataset: ModelParams):
                 if arr is None:
                     return None
                 arr = np.asarray(arr, dtype=np.float32)
-                # # Normalize shape to (3, N)
+                # Normalize shape to (3, N)
                 # if arr.ndim == 2 and arr.shape[0] != 3 and arr.shape[1] == 3:
                 #     arr = arr.T
                 return arr
@@ -51,10 +53,10 @@ def main(dataset: ModelParams):
     geo_train = copy.deepcopy(base_geo)
     geo_test = copy.deepcopy(base_geo)
     if spiral_offorigin_train is not None:
-        geo_train.offOrigin = spiral_offorigin_train/12 
+        geo_train.offOrigin = (spiral_offorigin_train)*scene_scale+base_geo.offOrigin
 
     if spiral_offorigin_test is not None:
-        geo_test.offOrigin = spiral_offorigin_test/12
+        geo_test.offOrigin = (spiral_offorigin_test)*scene_scale+base_geo.offOrigin
 
     projs_train = np.concatenate(
         [t2a(c.original_image) for c in scene.getTrainCameras()],
@@ -76,6 +78,8 @@ def main(dataset: ModelParams):
 
     print("Run traditional algorithms on {}".format(data_name))
     methods = ["fdk", "sart", "asd_pocs"]
+    # methods = ["fdk"]
+
     for method in methods:
         out_dict[method], ct_pred, _ = run_ct_recon_algs(
             projs_train, train_angles, copy.deepcopy(geo_train), vol_gt, save_path, method
@@ -83,7 +87,24 @@ def main(dataset: ModelParams):
         # Render projections in test
         projs_test_pred = tigre.Ax(
             np.transpose(ct_pred, (2, 1, 0)).copy(), copy.deepcopy(geo_test), test_angles
-        )[:, ::-1, :]
+        )[:, ::-1, :].copy()  # .copy() to avoid negative stride issue
+        
+        # Calculate 2D projection metrics
+        # projs_test_pred and projs_test are in shape [N_proj, H, W]
+        # Use axis=0 to compute metrics along projection dimension
+        proj_psnr_mean, proj_psnr_list = metric_proj(
+            projs_test, projs_test_pred, metric="psnr", axis=0, pixel_max=1.0
+        )
+        proj_ssim_mean, proj_ssim_list = metric_proj(
+            projs_test, projs_test_pred, metric="ssim", axis=0
+        )
+        
+        # Add projection metrics to output dict
+        out_dict[method]["proj_psnr"] = float(proj_psnr_mean)
+        out_dict[method]["proj_ssim"] = float(proj_ssim_mean)
+        # out_dict[method]["proj_psnr_list"] = proj_psnr_list
+        # out_dict[method]["proj_ssim_list"] = proj_ssim_list
+        
         proj_save_path = osp.join(save_path, method, "projs")
         os.makedirs(proj_save_path, exist_ok=True)
         for i_proj in range(projs_test_pred.shape[0]):
@@ -106,7 +127,7 @@ def main(dataset: ModelParams):
                 cmap="gray",
             )
 
-    with open(osp.join(save_path, "eval_3d.yml"), "w") as f:
+    with open(osp.join(save_path, "eval.yml"), "w") as f:
         yaml.dump(out_dict, f, default_flow_style=False, sort_keys=False)
 
     print("Run traditional algorithms on {} complete".format(data_name))

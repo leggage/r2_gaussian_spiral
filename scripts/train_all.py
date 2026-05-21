@@ -5,6 +5,7 @@ import os.path as osp
 import glob
 import subprocess
 import argparse
+import sys
 
 
 def main(args):
@@ -22,7 +23,8 @@ def main(args):
         case_name = osp.basename(case_path)
         case_output_path = f"{output_path}/{case_name}"
         if not osp.exists(case_output_path):
-            cmd = f"CUDA_VISIBLE_DEVICES={device} python train.py -s {case_path} -m {case_output_path}"
+            py = sys.executable
+            cmd = f"CUDA_VISIBLE_DEVICES={device} {py} train.py -s {case_path} -m {case_output_path}"
             if config_path:
                 cmd += f" --config {config_path}"
             os.system(cmd)

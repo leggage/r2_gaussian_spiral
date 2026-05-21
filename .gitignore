@@ -1,9 +1,9 @@
 __pycache__
 build/
-*.egg-info
+
 .vscode/
 data/
-output
+output/
 *.zip
 TIGRE*
 volume_processed/
@@ -12,3 +12,5 @@ FIPS_raw
 FIPS_processed
 other_scripts
 data1
+cleanup_archive/
+.cursor/

@@ -54,6 +54,8 @@ def get_geometry_tigre(cfg):
     geo.accuracy = cfg["accuracy"]  # Accuracy of FWD proj
     # Mode
     geo.filter = cfg["filter"]
+    geo.scene_scale = 2 / max(geo.sVoxel)
+    geo.coord_left = cfg["coord_left"]
     return geo
 
 
@@ -78,7 +80,7 @@ def run_ct_recon_algs(projs, angles, geo, ct_gt, save_path, method):
             projs[:, ::-1, :],
             geo,
             angles,
-            20,
+            10,
             lmbda=lmbda,
             lmbda_red=lambdared,
             verbose=verbose,
@@ -174,7 +176,8 @@ def run_ct_recon_algs(projs, angles, geo, ct_gt, save_path, method):
     else:
         raise NotImplementedError("Unsupported reconstruction method!")
     ct_pred = ct_pred.transpose((2, 1, 0))
-
+    if geo.coord_left:
+        ct_pred = ct_pred[::-1, :, :]
     duration = time.time() - start_time
     psnr_3d, _ = metric_vol(ct_gt, ct_pred, "psnr")
     ssim_3d, ssim_3d_axis = metric_vol(ct_gt, ct_pred, "ssim")

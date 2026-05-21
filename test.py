@@ -19,6 +19,7 @@ from time import time
 import numpy as np
 import concurrent.futures
 import yaml
+import json
 from argparse import ArgumentParser
 from random import randint
 import SimpleITK as sitk
@@ -30,9 +31,30 @@ from r2_gaussian.arguments import (
     get_combined_args,
 )
 from r2_gaussian.dataset import Scene
-from r2_gaussian.gaussian import GaussianModel, render, query, initialize_gaussian
+from r2_gaussian.gaussian import GaussianModel, render, initialize_gaussian, query_volume_safe
 from r2_gaussian.utils.general_utils import safe_state, t2a
 from r2_gaussian.utils.image_utils import metric_vol, metric_proj
+
+
+def _dbg_log(hypothesis_id, location, message, data):
+    payload = {
+        "sessionId": "79c54f",
+        "runId": "spiral-edge-v1",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time() * 1000),
+    }
+    try:
+        with open(
+            "/home/xielei/3dgs/r2_gaussian/.cursor/debug-79c54f.log",
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def testing(
@@ -102,17 +124,107 @@ def evaluate_volume(
     slice_save_path = osp.join(save_path, name)
     os.makedirs(slice_save_path, exist_ok=True)
 
-    query_pkg = query(
+    vol_pred = query_volume_safe(
         gaussians,
-        scanner_cfg["offOrigin"],
-        scanner_cfg["nVoxel"],
-        scanner_cfg["sVoxel"],
+        scanner_cfg,
         pipeline,
+        tuple(vol_gt.shape),
     )
-    vol_pred = query_pkg["vol"]
 
     psnr_3d, _ = metric_vol(vol_gt, vol_pred, "psnr")
     ssim_3d, ssim_3d_axis = metric_vol(vol_gt, vol_pred, "ssim")
+    z_abs_err = torch.mean(torch.abs(vol_gt - vol_pred), dim=(0, 1)).detach().cpu().numpy()
+    edge_k = max(1, min(10, z_abs_err.shape[0] // 8 if z_abs_err.shape[0] > 0 else 1))
+    edge_err = (
+        float(np.mean(np.concatenate([z_abs_err[:edge_k], z_abs_err[-edge_k:]])))
+        if z_abs_err.shape[0] > 0
+        else None
+    )
+    center_start = z_abs_err.shape[0] // 2 - edge_k // 2
+    center_end = center_start + edge_k
+    center_err = (
+        float(np.mean(z_abs_err[max(0, center_start) : min(z_abs_err.shape[0], center_end)]))
+        if z_abs_err.shape[0] > 0
+        else None
+    )
+    # region agent log
+    _dbg_log(
+        "H5",
+        "test.py:evaluate_volume",
+        "z-axis edge-vs-center 3d error",
+        {
+            "edge_k": int(edge_k),
+            "edge_abs_err": edge_err,
+            "center_abs_err": center_err,
+            "psnr_3d": float(psnr_3d),
+            "ssim_3d": float(ssim_3d),
+            "sVoxel": scanner_cfg.get("sVoxel"),
+            "offOrigin": scanner_cfg.get("offOrigin"),
+        },
+    )
+    # endregion
+    # region agent log
+    try:
+        gt_np = vol_gt.detach().cpu().numpy()
+        pred_np = vol_pred.detach().cpu().numpy()
+        gt_z_energy = np.mean(np.abs(gt_np), axis=(0, 1))
+        pred_z_energy = np.mean(np.abs(pred_np), axis=(0, 1))
+        gt_thr = float(np.max(gt_z_energy) * 0.05) if gt_z_energy.size > 0 else 0.0
+        pred_thr = float(np.max(pred_z_energy) * 0.05) if pred_z_energy.size > 0 else 0.0
+        gt_idx = np.where(gt_z_energy > gt_thr)[0]
+        pred_idx = np.where(pred_z_energy > pred_thr)[0]
+        _dbg_log(
+            "H6",
+            "test.py:evaluate_volume",
+            "z occupancy of gt/pred within voxel grid",
+            {
+                "nz": int(gt_np.shape[2]) if gt_np.ndim == 3 else None,
+                "gt_idx_min": int(gt_idx.min()) if gt_idx.size > 0 else None,
+                "gt_idx_max": int(gt_idx.max()) if gt_idx.size > 0 else None,
+                "pred_idx_min": int(pred_idx.min()) if pred_idx.size > 0 else None,
+                "pred_idx_max": int(pred_idx.max()) if pred_idx.size > 0 else None,
+                "gt_occupancy_ratio": float(gt_idx.size / gt_np.shape[2])
+                if gt_np.ndim == 3 and gt_np.shape[2] > 0
+                else None,
+                "pred_occupancy_ratio": float(pred_idx.size / pred_np.shape[2])
+                if pred_np.ndim == 3 and pred_np.shape[2] > 0
+                else None,
+            },
+        )
+        gt_grad_z = np.mean(np.abs(np.diff(gt_np, axis=2)), axis=(0, 1))
+        k2 = max(1, min(10, gt_grad_z.shape[0] // 8 if gt_grad_z.shape[0] > 0 else 1))
+        edge_grad = (
+            float(np.mean(np.concatenate([gt_grad_z[:k2], gt_grad_z[-k2:]])))
+            if gt_grad_z.shape[0] > 0
+            else None
+        )
+        cst = gt_grad_z.shape[0] // 2 - k2 // 2
+        ced = cst + k2
+        center_grad = (
+            float(np.mean(gt_grad_z[max(0, cst) : min(gt_grad_z.shape[0], ced)]))
+            if gt_grad_z.shape[0] > 0
+            else None
+        )
+        _dbg_log(
+            "H9",
+            "test.py:evaluate_volume",
+            "vol_gt z-gradient edge-vs-center",
+            {
+                "edge_grad": edge_grad,
+                "center_grad": center_grad,
+                "edge_over_center": float(edge_grad / center_grad)
+                if edge_grad is not None and center_grad is not None and center_grad > 0
+                else None,
+            },
+        )
+    except Exception as e:
+        _dbg_log(
+            "H6",
+            "test.py:evaluate_volume",
+            "z occupancy logging failed",
+            {"error": str(e)},
+        )
+    # endregion
 
     multithread_write(
         [vol_gt[..., i][None] for i in range(vol_gt.shape[2])],
@@ -162,11 +274,15 @@ def evaluate_render(save_path, name, views, gaussians, pipeline):
 
     gt_list = []
     render_list = []
+    cam_t1_list = []
+    cam_t2_list = []
     for view in tqdm(views, desc="render {}".format(name), leave=False):
         rendering = render(view, gaussians, pipeline)["render"]
         gt = view.original_image[0:3, :, :]
         gt_list.append(gt)
         render_list.append(rendering)
+        cam_t1_list.append(float(view.T[1]))
+        cam_t2_list.append(float(view.T[2]))
     multithread_write(gt_list, proj_save_path, "_gt")
     multithread_write(render_list, proj_save_path, "_pred")
 
@@ -180,6 +296,66 @@ def evaluate_render(save_path, name, views, gaussians, pipeline):
         "psnr_2d_projs": psnr_2d_projs,
         "ssim_2d_projs": ssim_2d_projs,
     }
+    psnr_arr = np.asarray(psnr_2d_projs, dtype=float).reshape(-1)
+    edge_k = max(1, min(10, psnr_arr.shape[0] // 8 if psnr_arr.shape[0] > 0 else 1))
+    edge_mean = (
+        float(np.mean(np.concatenate([psnr_arr[:edge_k], psnr_arr[-edge_k:]])))
+        if psnr_arr.shape[0] > 0
+        else None
+    )
+    center_start = psnr_arr.shape[0] // 2 - edge_k // 2
+    center_end = center_start + edge_k
+    center_mean = (
+        float(np.mean(psnr_arr[max(0, center_start) : min(psnr_arr.shape[0], center_end)]))
+        if psnr_arr.shape[0] > 0
+        else None
+    )
+    # region agent log
+    _dbg_log(
+        "H4",
+        "test.py:evaluate_render",
+        "2d projection psnr edge-vs-center",
+        {
+            "split_name": name,
+            "num_views": int(psnr_arr.shape[0]),
+            "edge_k": int(edge_k),
+            "edge_psnr_mean": edge_mean,
+            "center_psnr_mean": center_mean,
+            "psnr_2d": float(psnr_2d),
+            "ssim_2d": float(ssim_2d),
+        },
+    )
+    # endregion
+    # region agent log
+    if psnr_arr.shape[0] > 1 and len(cam_t1_list) == psnr_arr.shape[0]:
+        t1 = np.asarray(cam_t1_list, dtype=float)
+        t2 = np.asarray(cam_t2_list, dtype=float)
+        t1_abs = np.abs(t1 - np.mean(t1))
+        corr_t1 = (
+            float(np.corrcoef(t1_abs, psnr_arr)[0, 1])
+            if np.std(t1_abs) > 0 and np.std(psnr_arr) > 0
+            else None
+        )
+        corr_t2 = (
+            float(np.corrcoef(t2, psnr_arr)[0, 1])
+            if np.std(t2) > 0 and np.std(psnr_arr) > 0
+            else None
+        )
+        _dbg_log(
+            "H7",
+            "test.py:evaluate_render",
+            "psnr-camera-translation relationship",
+            {
+                "split_name": name,
+                "t1_min": float(np.min(t1)),
+                "t1_max": float(np.max(t1)),
+                "t2_min": float(np.min(t2)),
+                "t2_max": float(np.max(t2)),
+                "corr_abst1_psnr": corr_t1,
+                "corr_t2_psnr": corr_t2,
+            },
+        )
+    # endregion
     with open(osp.join(save_path, f"eval2d_{name}.yml"), "w") as f:
         yaml.dump(eval_dict, f, default_flow_style=False, sort_keys=False)
     print(

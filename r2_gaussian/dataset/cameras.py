@@ -62,9 +62,10 @@ class Camera(nn.Module):
 
         self.trans = trans
         self.scale = scale
+        world_view_np = getWorld2View2(R, T, trans, scale)
 
         self.world_view_transform = (
-            torch.tensor(getWorld2View2(R, T, trans, scale)).transpose(0, 1).cuda()
+            torch.tensor(world_view_np).transpose(0, 1).cuda()
         )
         self.projection_matrix = (
             getProjectionMatrix(
@@ -81,7 +82,10 @@ class Camera(nn.Module):
                 self.projection_matrix.unsqueeze(0)
             )
         ).squeeze(0)
-        self.camera_center = self.world_view_transform.inverse()[3, :3]
+        # Avoid CUDA linalg dependency for 4x4 inversion on some environments.
+        self.camera_center = torch.tensor(
+            np.linalg.inv(world_view_np)[3, :3], dtype=torch.float32, device=self.data_device
+        )
 
 
 class MiniCam:
@@ -104,5 +108,7 @@ class MiniCam:
         self.zfar = zfar
         self.world_view_transform = world_view_transform
         self.full_proj_transform = full_proj_transform
-        view_inv = torch.inverse(self.world_view_transform)
-        self.camera_center = view_inv[3][:3]
+        wv_cpu = self.world_view_transform.detach().cpu().numpy().T
+        self.camera_center = torch.tensor(
+            np.linalg.inv(wv_cpu)[3, :3], dtype=torch.float32, device=self.world_view_transform.device
+        )

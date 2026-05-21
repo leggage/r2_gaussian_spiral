@@ -11,13 +11,14 @@
 import os
 import sys
 import random
+from typing import Optional
 import numpy as np
 import os.path as osp
 import torch
 
 sys.path.append("./")
-from r2_gaussian.gaussian import GaussianModel
-from r2_gaussian.arguments import ModelParams
+from r2_gaussian.gaussian.gaussian_model import GaussianModel
+from r2_gaussian.arguments import ModelParams, PipelineParams
 from r2_gaussian.dataset.dataset_readers import sceneLoadTypeCallbacks
 from r2_gaussian.utils.camera_utils import cameraList_from_camInfos
 from r2_gaussian.utils.general_utils import t2a
@@ -76,7 +77,7 @@ class Scene:
             dim=0,
         )
 
-    def save(self, iteration, queryfunc):
+    def save(self, iteration, queryfunc, pipe: Optional[PipelineParams] = None):
         point_cloud_path = osp.join(
             self.model_path, "point_cloud/iteration_{}".format(iteration)
         )
@@ -84,7 +85,17 @@ class Scene:
             osp.join(point_cloud_path, "point_cloud.pickle")
         )  # Save pickle rather than ply
         if queryfunc is not None:
-            vol_pred = queryfunc(self.gaussians)["vol"]
+            if pipe is not None:
+                from r2_gaussian.gaussian.render_query import query_volume_safe
+
+                vol_pred = query_volume_safe(
+                    self.gaussians,
+                    self.scanner_cfg,
+                    pipe,
+                    tuple(self.vol_gt.shape),
+                )
+            else:
+                vol_pred = queryfunc(self.gaussians)["vol"]
             vol_gt = self.vol_gt
             np.save(osp.join(point_cloud_path, "vol_gt.npy"), t2a(vol_gt))
             np.save(

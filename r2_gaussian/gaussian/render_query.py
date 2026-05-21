@@ -10,6 +10,7 @@
 #
 import sys
 import torch
+import torch.nn.functional as F
 import math
 from xray_gaussian_rasterization_voxelization import (
     GaussianRasterizationSettings,
@@ -75,6 +76,56 @@ def query(
         "vol": vol_pred,
         "radii": radii,
     }
+
+
+def query_volume_safe(
+    pc: GaussianModel,
+    scanner_cfg: dict,
+    pipe: PipelineParams,
+    target_shape: tuple[int, int, int],
+    scaling_modifier: float = 1.0,
+) -> torch.Tensor:
+    """
+    Full-volume voxel query with CUDA OOM fallback: reduce nVoxel (same physical sVoxel),
+    then trilinear upsample to ``target_shape`` (e.g. match ``vol_gt``).
+    """
+    center = scanner_cfg["offOrigin"]
+    sVoxel = scanner_cfg["sVoxel"]
+    orig = [int(x) for x in scanner_cfg["nVoxel"]]
+    target_shape = tuple(int(x) for x in target_shape)
+
+    factors = [1.0, 0.75, 0.5, 0.375, 0.25, 0.125]
+    last_err = None
+    for f in factors:
+        n_vox = [max(8, int(round(o * f))) for o in orig]
+        torch.cuda.empty_cache()
+        try:
+            pkg = query(pc, center, n_vox, sVoxel, pipe, scaling_modifier)
+            vol = pkg["vol"]
+            if tuple(vol.shape) != target_shape:
+                v5 = vol.unsqueeze(0).unsqueeze(0)
+                vol = F.interpolate(
+                    v5,
+                    size=target_shape,
+                    mode="trilinear",
+                    align_corners=False,
+                ).squeeze(0).squeeze(0)
+            if f < 1.0:
+                print(
+                    f"[query_volume_safe] used reduced grid {n_vox} (factor={f}) "
+                    f"then upsampled to {target_shape}",
+                    flush=True,
+                )
+            return vol
+        except RuntimeError as e:
+            last_err = e
+            msg = str(e).lower()
+            if "out of memory" in msg:
+                continue
+            raise
+    if last_err is not None:
+        raise last_err
+    raise RuntimeError("query_volume_safe: exhausted resolution ladder")
 
 
 def render(
