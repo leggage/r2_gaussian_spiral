@@ -14,28 +14,35 @@ raw_info = [
     #     "xy_invert": False,
     # },
 
-    
+   
     {
-        "raw_path": "data/abdomen",
-        "output_name": "abdomen",
+        "raw_path": "data/LDCT-L004/3DSLICES",
+        "output_name": "ldctl004_no_norm_plus",
         "file_type": "dcm",
         "thickness": None,
         "xy_invert": False,
-    },
-    {
-        "raw_path": "data/adrenal",
-        "output_name": "adrenal",
-        "file_type": "dcm",
-        "thickness": None,
-        "xy_invert": False,
-    },
-    {
-        "raw_path": "data/aorta",
-        "output_name": "aorta",
-        "file_type": "dcm",
-        "thickness": None,
-        "xy_invert": False,
-    },
+    },  
+    # {
+    #     "raw_path": "data/abdomen",
+    #     "output_name": "abdomen",
+    #     "file_type": "dcm",
+    #     "thickness": None,
+    #     "xy_invert": False,
+    # },
+    # {
+    #     "raw_path": "data/adrenal",
+    #     "output_name": "adrenal",
+    #     "file_type": "dcm",
+    #     "thickness": None,
+    #     "xy_invert": False,
+    # },
+    # {
+    #     "raw_path": "data/aorta",
+    #     "output_name": "aorta",
+    #     "file_type": "dcm",
+    #     "thickness": None,
+    #     "xy_invert": False,
+    # },
     # {
     #     "raw_path": "data/LDCT-C179/3DSLICE",
     #     "output_name": "ldct_c179",

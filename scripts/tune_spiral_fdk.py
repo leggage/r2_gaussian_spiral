@@ -52,8 +52,8 @@ class Iter08Defaults:
 
     # 路径（相对仓库根目录）
     dataset_relpath: str = "data/LDCT-L004/real_dataset/ldct_l004_spiral_nt200_projno_rescale"
-    geometry_relpath: str = "data/LDCT-L004/SPIRAL_processed_rect/scanner_geometry.json"
-    run_name: str = "iter08_helical_skip2_flipu"
+    geometry_relpath: str = "data/LDCT-L004/SPIRAL_processed_transposed/scanner_geometry.json"
+    run_name: str = "baseline-nonorm_l_plus_svo317"
 
     # FDK
     object_scale: float = 50.0
@@ -284,7 +284,7 @@ def load_volume_for_eval(
     vol_fdk_arg: Optional[str],
 ) -> Tuple[np.ndarray, str, Dict[str, Any]]:
     """``--eval_only``：从 ``--vol_fdk`` 或 ``vol_gt.npy`` 读体数据。"""
-    vol_path = vol_fdk_arg or osp.join(data.dataset_dir, "vol_gt.npy")
+    vol_path = vol_fdk_arg or osp.join(data.dataset_dir, "ldctl004_no_norm_plus.npy")
     if not osp.isfile(vol_path):
         raise FileNotFoundError(vol_path)
     vol = np.load(vol_path).astype(np.float32)

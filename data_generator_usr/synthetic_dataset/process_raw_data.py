@@ -38,16 +38,16 @@ def main(args):
         pbar.set_description(case_output_name)
         file_type = case_info["file_type"]
         case_output_path = osp.join(output_path, f"{case_output_name}.npy")
-        if not osp.exists(case_output_path):
-            if file_type == "dcm":
-                vol_out = process_dcm(case_info, target_size)
-            elif file_type == "raw":
-                vol_out = process_raw(case_info, target_size)
-            elif file_type == "tif":
-                vol_out = process_tif(case_info, target_size)
-            else:
-                raise ValueError("Unsupported file type")
-            np.save(case_output_path, vol_out.astype(np.float32))
+        # if not osp.exists(case_output_path):
+        if file_type == "dcm":
+            vol_out = process_dcm(case_info, target_size)
+        elif file_type == "raw":
+            vol_out = process_raw(case_info, target_size)
+        elif file_type == "tif":
+            vol_out = process_tif(case_info, target_size)
+        else:
+            raise ValueError("Unsupported file type")
+        np.save(case_output_path, vol_out.astype(np.float32))
 
 
 def process_dcm(case_info, target_size):
@@ -63,17 +63,21 @@ def process_dcm(case_info, target_size):
         slices.append(slice)
     vol = np.stack(slices, axis=-1)
     vol = vol[:, :, ::-1]  # Upside down
-    vol = vol.clip(-1000, 2000)  # From air to bone
+    # vol = vol.clip(-1000, 2000)  # From air to bone
+    vol = vol + 1024
     vol_min = vol.min()
     vol_max = vol.max()
-    vol = (vol - vol_min) / (vol_max - vol_min)
+    
+    print(vol_min,vol_max)
+    # vol = (vol - vol_min) / (vol_max - vol_min)
     slice_thickness = ds.SliceThickness
     if thickness is None:
         thickness = ds.SliceThickness
     pixel_spacing = [float(i) for i in list(ds.PixelSpacing)]
     voxel_spacing = np.array(pixel_spacing + [slice_thickness])
+    print(vol.shape)
     vol_new = reshape_vol(vol, voxel_spacing, target_size, None)
-    vol_new = vol_new.clip(0.0, 1.0)
+    # vol_new = vol_new.clip(0.0, 1.0)
     if case_info["xy_invert"]:
         vol_new = vol_new[::-1, ::-1, :]
     return vol_new

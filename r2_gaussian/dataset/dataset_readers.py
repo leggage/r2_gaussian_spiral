@@ -135,7 +135,7 @@ def readCTameras(meta_data, source_path, eval=False, scene_scale=1.0):
             if cam_cfg["coord_left"]:
                 image = image[:,::-1].copy()
                 # image = image[::-1,:].copy()
-                # image = image*6    ##抵消数据生成时的缩放，/400*50=/8
+                image = image*7    ##抵消数据生成时的缩放，/400*50=/8
                 frame_angle = -frame_angle
             # Note, dDetector is [v, u] not [u, v]
             FovX = np.arctan2(cam_cfg["sDetector"][1] / 2, cam_cfg["DSD"]) * 2
