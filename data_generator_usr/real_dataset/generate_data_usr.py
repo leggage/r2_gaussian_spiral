@@ -459,14 +459,14 @@ if __name__ == "__main__":
 #######proj_rescale:ori/proj_rescale*object_scale
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/LDCT-L004/SPIRAL_processed_transposed/proj", type=str, help="Path to  data.")
-    parser.add_argument("--output", default="data/LDCT-L004/real_dataset/ldct_l004_spiral_nt200_projd8", type=str, help="Path to output.")
+    parser.add_argument("--data", default="data/LDCT-L004/cat2/proj", type=str, help="Path to  data.")
+    parser.add_argument("--output", default="data/LDCT-L004/real_dataset/ldct_l004_stitch_ntrain100", type=str, help="Path to output.")
     parser.add_argument("--proj_subsample", default=1, type=int, help="subsample projections pixels")
     parser.add_argument("--proj_rescale", default=400.0, type=float, help="rescale projection values to fit density to around [0,1]")
     parser.add_argument("--object_scale", default=50, type=int, help="Rescale the whole scene to similar scales as the synthetic data")
-    parser.add_argument("--n_test", default=300, type=int, help="number of test")
-    parser.add_argument("--n_train", default=200, type=int, help="number of train")
-    parser.add_argument("--geometry_json", default="data/LDCT-L004/SPIRAL_processed_transposed/scanner_geometry.json", type=str, help="Optional scanner geometry JSON exported from dicom_spiral_process.m")
+    parser.add_argument("--n_test", default=200, type=int, help="number of test")
+    parser.add_argument("--n_train", default=100, type=int, help="number of train")
+    parser.add_argument("--geometry_json", default="data/LDCT-L004/cat2/scanner_geometry.json", type=str, help="Optional scanner geometry JSON exported from dicom_spiral_process.m")
     parser.add_argument("--scanner_mode", default="cone", choices=["cone", "fan"], help="Beam model used by the scanner")
     
     parser.add_argument("--nVoxel", nargs="+", default=[256, 256, 256], type=int, help="voxel dimension")

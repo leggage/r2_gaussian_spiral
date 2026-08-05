@@ -51,14 +51,14 @@ class Iter08Defaults:
     """LDCT-L004 螺旋数据集 + iter08 重建参数的默认值。"""
 
     # 路径（相对仓库根目录）
-    dataset_relpath: str = "data/LDCT-L004/real_dataset/ldct_l004_spiral_nt200_projno_rescale"
-    geometry_relpath: str = "data/LDCT-L004/SPIRAL_processed_transposed/scanner_geometry.json"
-    run_name: str = "baseline-nonorm_l_plus_svo317"
+    dataset_relpath: str = "data/LDCT-C001/real_dataset/re_spiral_ntrain200"
+    geometry_relpath: str = "data/LDCT-C001/spiral_scanner_geometry.json"
+    run_name: str = "fdk"
 
     # FDK
     object_scale: float = 50.0
     proj_subsample: int = 1
-    view_skip: int = 2
+    view_skip: int = 5
     filter: str = "shepp_logan"
 
     # 探测器翻转（须与 dataset_readers / 训练一致）
@@ -284,7 +284,7 @@ def load_volume_for_eval(
     vol_fdk_arg: Optional[str],
 ) -> Tuple[np.ndarray, str, Dict[str, Any]]:
     """``--eval_only``：从 ``--vol_fdk`` 或 ``vol_gt.npy`` 读体数据。"""
-    vol_path = vol_fdk_arg or osp.join(data.dataset_dir, "ldctl004_no_norm_plus.npy")
+    vol_path = vol_fdk_arg or osp.join(data.dataset_dir, "vol_gt.npy")
     if not osp.isfile(vol_path):
         raise FileNotFoundError(vol_path)
     vol = np.load(vol_path).astype(np.float32)

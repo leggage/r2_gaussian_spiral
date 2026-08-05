@@ -14,3 +14,5 @@ other_scripts
 data1
 cleanup_archive/
 .cursor/
+pred_volume/
+volume_gt/
