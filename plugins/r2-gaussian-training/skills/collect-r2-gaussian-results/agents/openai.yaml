@@ -1,0 +1,4 @@
+interface:
+  display_name: "R2-Gaussian 结果采集"
+  short_description: "Collect metrics, profile figures, timing, and convergence curves"
+  default_prompt: "使用 $collect-r2-gaussian-results 统计这次实验结果。"

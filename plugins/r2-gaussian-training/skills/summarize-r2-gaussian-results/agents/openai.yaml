@@ -1,0 +1,4 @@
+interface:
+  display_name: "R2-Gaussian 实验汇总"
+  short_description: "Aggregate multi-run results into publication-ready LaTeX tables"
+  default_prompt: "使用 $summarize-r2-gaussian-results 将实验结果整理成 LaTeX 表格。"

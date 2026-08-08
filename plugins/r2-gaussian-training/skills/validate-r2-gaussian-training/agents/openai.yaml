@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate R2-Gaussian Training"
+  short_description: "Preflight R2-Gaussian parameters and CUDA setup"
+  default_prompt: "Use $validate-r2-gaussian-training to run a safe preflight check before starting R2-Gaussian training."

@@ -1,0 +1,22 @@
+{
+  "name": "r2-gaussian-training",
+  "version": "0.1.0",
+  "description": "Portable R2-Gaussian dataset, preflight, training, monitoring, and reporting workflows for Codex.",
+  "author": {
+    "name": "leggage",
+    "url": "https://github.com/leggage"
+  },
+  "homepage": "https://github.com/leggage/r2_gaussian_spiral",
+  "repository": "https://github.com/leggage/r2_gaussian_spiral",
+  "keywords": ["r2-gaussian", "tomography", "training", "cuda", "codex"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "R2-Gaussian Training",
+    "shortDescription": "Automate R2-Gaussian experiments safely.",
+    "longDescription": "Prepare hierarchical CT datasets, validate CUDA environments, run and monitor R2-Gaussian training, collect metrics and figures, and generate LaTeX comparisons.",
+    "developerName": "leggage",
+    "category": "DeveloperTools",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": "Use the R2-Gaussian training workflow to prepare, validate, run, and report my experiment."
+  }
+}

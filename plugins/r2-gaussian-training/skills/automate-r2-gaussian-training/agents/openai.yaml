@@ -1,0 +1,4 @@
+interface:
+  display_name: "R2-Gaussian 训练自动化"
+  short_description: "Automate preprocessing, preflight, training, and reporting"
+  default_prompt: "使用 $automate-r2-gaussian-training 帮我完成 R2-Gaussian 训练流程。"

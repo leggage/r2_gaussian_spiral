@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+import json
 import torch
 import sys
 from argparse import ArgumentParser
@@ -22,8 +23,11 @@ def main(dataset: ModelParams, args):
 
     scanner_cfg = scene.scanner_cfg
 
+    with open(osp.join(dataset.source_path, "meta_data.json"), "r") as f:
+        volume_path = json.load(f)["vol"]
+
     vol_mesh = create_vol_mesh(
-        np.load(osp.join(dataset.source_path, "vol_gt.npy")),
+        np.load(osp.join(dataset.source_path, volume_path)),
         np.array(scanner_cfg["offOrigin"]),
         np.array(scanner_cfg["dVoxel"]),
         np.eye(3),
