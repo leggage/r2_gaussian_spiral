@@ -20,7 +20,7 @@ description: Automate the complete R2-Gaussian experiment workflow. Use whenever
    `CUDA_VISIBLE_DEVICES=<physical-gpu> <selected-python> train.py -s <dataset> -m <output>`
    When `CUDA_VISIBLE_DEVICES` contains one GPU, pass local CUDA device 0 to programs that also accept a device index unless repository behavior proves otherwise.
 9. Start training only after confirmation. Keep a persistent execution session and a durable log. Do not use a detached process unless its survival has been verified. Call `scripts/progress.py --model-path <output> --total-iterations <N>` at least every 30-60 seconds while training is active and show its live progress line. If TensorBoard is unavailable, parse the durable log equivalently. For example:
-   `[████░░░░░░░░░░░░░░░░] 6000/30000 20.0% | loss 0.031 | points 85000 | ETA 18m`
+   `[████░░░░░░░░░░░░░░░░] 6000/30000 20.0% | loss 0.031 | ssim3d | psnr3d | ssim2d | psnr2d |`
    Include current/total iteration, percentage, loss, Gaussian count, elapsed time, and ETA when observable. Recalculate ETA from recent throughput; label it approximate. Immediately report evaluation metrics, NaN/Inf, CUDA errors, OOM, or unexpected process exit. Do not end the active turn while the user asked to monitor until completion.
 10. After each completed task, invoke `collect-r2-gaussian-results`.
 11. For multiple datasets or models, ask whether to invoke `summarize-r2-gaussian-results` to produce one comparative LaTeX table.
