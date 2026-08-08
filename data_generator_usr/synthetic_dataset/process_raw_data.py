@@ -63,13 +63,13 @@ def process_dcm(case_info, target_size):
         slices.append(slice)
     vol = np.stack(slices, axis=-1)
     vol = vol[:, :, ::-1]  # Upside down
-    # vol = vol.clip(-1000, 2000)  # From air to bone
-    vol = vol + 1024
+    vol = vol.clip(-1000, 2000)  # From air to bone
+    # vol = vol + 1024
     vol_min = vol.min()
     vol_max = vol.max()
     
-    print(vol_min,vol_max)
-    # vol = (vol - vol_min) / (vol_max - vol_min)
+    # print(vol_min,vol_max)
+    vol = (vol - vol_min) / (vol_max - vol_min)
     slice_thickness = ds.SliceThickness
     if thickness is None:
         thickness = ds.SliceThickness
@@ -77,7 +77,7 @@ def process_dcm(case_info, target_size):
     voxel_spacing = np.array(pixel_spacing + [slice_thickness])
     print(vol.shape)
     vol_new = reshape_vol(vol, voxel_spacing, target_size, None)
-    # vol_new = vol_new.clip(0.0, 1.0)
+    vol_new = vol_new.clip(0.0, 1.0)
     if case_info["xy_invert"]:
         vol_new = vol_new[::-1, ::-1, :]
     return vol_new

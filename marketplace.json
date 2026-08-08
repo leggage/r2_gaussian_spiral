@@ -1,0 +1,20 @@
+{
+  "name": "r2-gaussian-spiral",
+  "interface": {
+    "displayName": "R2 Gaussian Spiral"
+  },
+  "plugins": [
+    {
+      "name": "r2-gaussian-training",
+      "source": {
+        "source": "local",
+        "path": "./plugins/r2-gaussian-training"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "DeveloperTools"
+    }
+  ]
+}

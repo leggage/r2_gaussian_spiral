@@ -101,6 +101,72 @@ We have converted our datasets to NAF format for your convenience. You can find 
 
 ## 3. Running
 
+### 3.0 Automated training workflow (Codex skills)
+
+This repository includes local Codex skills for an end-to-end, confirmation-driven
+experiment workflow. In Codex, requests such as `I want to train R2-Gaussian` or
+`我要训练` automatically invoke `$automate-r2-gaussian-training`. You can also invoke
+the skills explicitly:
+
+| Skill | Purpose |
+| --- | --- |
+| `$automate-r2-gaussian-training` | Coordinate preprocessing, visualization, preflight, training, monitoring, and result collection. |
+| `$prepare-r2-gaussian-dataset` | Configure and generate normalized real or synthetic spiral/stitch datasets. |
+| `$validate-r2-gaussian-training` | Run a read-only CUDA, extension, dataset, output, and hyperparameter preflight. |
+| `$collect-r2-gaussian-results` | Collect 2D/3D PSNR and SSIM, training time, profile figures, and convergence curves. |
+| `$summarize-r2-gaussian-results` | Aggregate multi-dataset or multi-model results into a LaTeX table and mark the best values. |
+
+The automated workflow follows these stages:
+
+1. List the available Conda environments and ask the user to select one explicitly.
+   The resolved Python executable is reused for preprocessing, preflight, training,
+   evaluation, and result collection.
+2. Select an existing dataset or create a preprocessing YAML. Real datasets use
+   `scanner.coord_left: true`; synthetic datasets normally use `false`.
+3. Validate the YAML, generate the dataset, and optionally inspect it with
+   `scripts/visualize_scene.py`.
+4. Confirm that the scene is correct. If it is not, return to preprocessing and
+   diagnose the data or geometry.
+5. Detect available GPUs. Multiple independent tasks default to one task per GPU;
+   a single `train.py` process is not assumed to be distributed training.
+6. Run `$validate-r2-gaussian-training` for every task. Training starts only after
+   all failures are resolved and the exact command is confirmed.
+7. Train under the organized output hierarchy below. While training is active,
+   display a live text progress bar every 30-60 seconds with iteration, percentage,
+   loss, Gaussian count, elapsed time, and approximate ETA. Collect experiment
+   artifacts after completion.
+
+```text
+data/<real|syn>/<organ>/<spiral|stitch>/ntrain<N>/<model>/
+output/<real|syn>/<organ>/<spiral|stitch>/ntrain<N>/<model>/
+```
+
+The workflow never mixes a new run with a non-empty model directory. Use a new run
+name or an explicit checkpoint when resuming.
+
+#### Install the Codex skills on any host
+
+The five skills above are distributed as the repository plugin
+`r2-gaussian-training`. After cloning this repository, register its marketplace
+and install the plugin:
+
+```sh
+cd /path/to/r2_gaussian_spiral
+codex plugin marketplace add "$(pwd)"
+codex plugin add r2-gaussian-training@r2-gaussian-spiral
+```
+
+You can also register the GitHub repository directly without a prior clone:
+
+```sh
+codex plugin marketplace add leggage/r2_gaussian_spiral
+codex plugin add r2-gaussian-training@r2-gaussian-spiral
+```
+
+Start a new Codex thread after installation so the packaged skills are loaded.
+The plugin sources live under `plugins/r2-gaussian-training/`, and
+`marketplace.json` is kept at the repository root for portable discovery.
+
 ### 3.1 Initialization (optional)
 
 We have included initialization files in our dataset. You can skip this step if using our dataset.
@@ -137,6 +203,14 @@ Number of points for initialization. `50000` by default.
 ##### --density_thresh
 
 We sample voxels with density higher than the threshold. `0.05` by default.
+
+When using `data_preprocess/norm_pipeline.py`, prefer
+`init.density_threshold: auto`. The normalized pipeline automatically selects a
+high-density candidate region containing up to three times the requested point
+count, then samples unique voxels without replacement. It prints the effective
+threshold and candidate count for reproducibility. A numeric threshold remains
+supported, but preprocessing now fails if it produces fewer unique voxels than
+`init.n_points`; it never fills the point cloud by duplicating coordinates.
 
 ##### --density_rescale
 
@@ -380,11 +454,97 @@ Flag to skip reconstructing the volume.
 </details>
 <br>
 
+### 3.4 Result collection and comparison
+
+`$collect-r2-gaussian-results` records one traceable result row per run. The
+expected metrics are 3D PSNR, 3D SSIM, projection (2D) PSNR, projection (2D)
+SSIM, and training time in minutes. It also records the dataset, `ntrain`, loss,
+model/acquisition label (for example, `r2gs-spiral`), and the source file for each
+value. Missing real-world 3D metrics remain `/`; they are never replaced with
+zeros or training loss.
+
+The collector reads evaluation YAML/JSON files and TensorBoard events from the
+model directory. Convergence curves use cumulative elapsed time when iteration
+timing is available, with an iteration-based fallback labeled explicitly. Final
+reconstruction profile/cutaway figures are generated from the reconstructed
+volume with `scripts/plot_volume.py` after its input and output paths are resolved
+for the selected run.
+
+For multi-dataset or multi-model experiments,
+`$summarize-r2-gaussian-results` creates a source CSV/JSON and a publication-ready
+LaTeX table with these default columns:
+
+```text
+METHOD | PSNR_3D | SSIM_3D | PROJ_PSNR | PROJ_SSIM | TIME(min) | LOSS
+```
+
+Best PSNR/SSIM values are maximized, time is minimized, and every tied best value
+within a comparable dataset group is marked with `\best{...}`. Missing or
+incomparable values are not highlighted.
+
 You can find all trained models [here](https://drive.google.com/drive/folders/1HIvO7aS2gbp7Qx3ceHiRSNoAKKS_VnjU?usp=sharing). We report quantitative results on all datasets (synthetic, real, and SAX-NeRF datasets) [here](assets/results.md).
 
 ## 4. Generate your own data
 
 :exclamation: Our code supports both cone beam and parallel beam configurations.
+
+### 4.1 Unified normalized real/synthetic pipeline
+
+The normalized pipeline accepts a YAML configuration and creates spiral data plus
+an optional stitch dataset. Start from
+`data_preprocess/configs/norm_pipeline.example.yml`; see
+`data_preprocess/README_norm.md` for the complete field descriptions.
+
+```sh
+# Check paths and configuration without reading the full dataset or using CUDA.
+python data_preprocess/norm_pipeline.py \
+  --config data_preprocess/configs/norm_pipeline.example.yml \
+  --validate-only
+
+# Generate projections, metadata, volume, and the FDK initialization point cloud.
+python data_preprocess/norm_pipeline.py \
+  --config data_preprocess/configs/norm_pipeline.example.yml
+```
+
+Required inputs are:
+
+- Synthetic: `dataset_type: syn` and `raw_gt`.
+- Real: `dataset_type: real`, `raw_gt`, and `raw_proj`. Real scanner geometry is
+  read from projection DICOM metadata where supported.
+- Both: organ/case name, model, train/test counts, scanner/trajectory settings,
+  output root, and initialization settings. Do not invent scanner geometry.
+
+Recommended initialization configuration:
+
+```yaml
+init:
+  n_points: 50000
+  density_threshold: auto
+  density_rescale: 0.15
+```
+
+After generation, verify `meta_data.json`, `vol_gt.npy`, `init_<dataset>.npy`, and
+the expected train/test projection counts. A valid initialization should contain
+finite values and the requested number of unique spatial coordinates.
+
+```sh
+python scripts/visualize_scene.py -s \
+  data/real/chest/spiral/ntrain400/r2gs
+```
+
+Before training, run the bundled read-only preflight (Codex normally does this
+through `$validate-r2-gaussian-training`):
+
+```sh
+python ~/.codex/skills/validate-r2-gaussian-training/scripts/preflight.py \
+  --repo . \
+  --source-path data/real/chest/spiral/ntrain400/r2gs \
+  --model-path output/real/chest/spiral/ntrain400/r2gs \
+  --gpu 0
+```
+
+Treat every `[FAIL]` as blocking and inspect every `[WARN]` before starting
+`train.py`.
 
 If you have ground truth volumes but do not have X-ray projections, follow this [instruction](data_generator/synthetic_dataset/README.md) to generate your own dataset.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "R2-Gaussian 数据集预处理"
+  short_description: "Configure, generate, visualize, and verify training datasets"
+  default_prompt: "使用 $prepare-r2-gaussian-dataset 帮我准备训练数据集。"

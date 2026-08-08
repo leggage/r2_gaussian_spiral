@@ -4,9 +4,9 @@ import numpy as np
 import pyvista as pv
 
 # Path to *.npy volume file
-volume_path = "data_generator_usr/volume_gt/ldctl004_norm.npy"
+volume_path = "data/normalized/real_chest_spiral_ntrain200_r2gs/vol_gt.npy"
 # Image save path
-save_path = "pred_volume/ldct_l004/ldct_l004_gt_norm.png"
+save_path = "pred_volume/real_chest_norm_gt.png"
 
 # Pyvista settings. You may need to tune them.
 cpos = [
